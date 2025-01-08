@@ -28,10 +28,10 @@ export default function Home() {
       });
 
       const data = await res.json();
-      setResponse(data.answer);
+      setResponse(data); // Stocke tout l'objet de réponse
     } catch (error) {
       console.error('Erreur:', error);
-      setResponse('Une erreur est survenue.');
+      setResponse({ error: 'Une erreur est survenue.' });
     }
   };
 
@@ -127,9 +127,24 @@ export default function Home() {
                 id="response"
                 className="mt-6 p-4 bg-gray-100 rounded-md border border-gray-300"
               >
-                {response}
+                {' '}
+                <p>
+                  <strong>🛠️ :</strong>{' '}
+                  {response.result?.compatibility === 'Non'
+                    ? '❌ Non compatible'
+                    : '✔️ Compatible'}
+                </p>
+                <p>
+                  <strong>🧠 :</strong>{' '}
+                  {response.result?.confidence || 'Non disponible'}
+                </p>
+                <p>
+                  <strong>📚 :</strong>{' '}
+                  {response.result?.argument || 'Non disponible'}
+                </p>
               </div>
             )}
+
             <div
               className="link mt-4 text-teal-700 underline cursor-pointer"
               id="report-bug-link"
