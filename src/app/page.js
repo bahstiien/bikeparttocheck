@@ -12,9 +12,7 @@ export default function Home() {
 
   useEffect(() => {
     setBikeInfo('');
-    setProductUrl(
-      'https://www.alltricks.fr/F-46291-roues-route_ville_fixie/P-2914753-roue_avant_fulcrum_racing_600_700_mm___qr_9x100_mm___patins',
-    );
+    setProductUrl('');
   }, []);
 
   const handleSubmit = async (e) => {
