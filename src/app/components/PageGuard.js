@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const PASSWORD = 'monSuperMotDePasse';
+const PASSWORD = '2025IA!';
 
 export default function PageGuard({ children }) {
   const [authorized, setAuthorized] = useState(false);

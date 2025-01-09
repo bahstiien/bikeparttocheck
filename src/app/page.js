@@ -127,20 +127,14 @@ export default function Home() {
                 id="response"
                 className="mt-6 p-4 bg-gray-100 rounded-md border border-gray-300"
               >
-                {' '}
+                <h2 className="text-lg font-bold">Résultat :</h2>
                 <p>
-                  <strong>🛠️ :</strong>{' '}
-                  {response.result?.compatibility === 'Non'
+                  <strong>Compatibilité :</strong>{' '}
+                  {response.result?.compatibility === '❌ Non compatible'
                     ? '❌ Non compatible'
-                    : '✔️ Compatible'}
-                </p>
-                <p>
-                  <strong>🧠 :</strong>{' '}
-                  {response.result?.confidence || 'Non disponible'}
-                </p>
-                <p>
-                  <strong>📚 :</strong>{' '}
-                  {response.result?.argument || 'Non disponible'}
+                    : response.result?.compatibility === '✔️ Compatible'
+                    ? '✔️ Compatible'
+                    : 'Non disponible'}
                 </p>
               </div>
             )}
