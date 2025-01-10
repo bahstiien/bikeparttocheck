@@ -77,9 +77,6 @@ export default async function handler(req, res) {
     console.error('Erreur lors du scraping du H1 ou de la description:', error);
   }
 
-  console.log('H1:', productH1);
-  console.log('Description du produit:', productDescriptionFromFP);
-
   // Vérifie si les informations produit sont disponibles dans le JSON
   let productDescription = '';
   let bikeDescription = '';
@@ -106,7 +103,6 @@ export default async function handler(req, res) {
     `;
   }
 
-  // Effectue toujours l'appel à Perplexity pour enrichir les données
   try {
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -120,28 +116,30 @@ export default async function handler(req, res) {
           {
             role: 'user',
             content: `
-            Je souhaite vérifier la compatibilité d'une roue spécifique avec un vélo donné. Voici les détails :
-            
-            🔎 **Roue à tester :** ${productH1} et la description du produit ${productDescriptionFromFP}
-            🚴 **Vélo cible :** ${bikeInfo}
-            
-            Fournis une analyse détaillée des points suivants :
-            
-            1️⃣ **Freins** : Vérifie si le type de freinage (disque ou patins) est compatible entre la roue et le vélo. Une différence de type de freinage doit entraîner une incompatibilité claire.
-            
-            2️⃣ **Dimensions de roue** : Vérifie le diamètre et la largeur des roues. Le diamètre des roues doit correspondre à celui du vélo.
-            
-            3️⃣ **Axe de fixation** : Vérifie la compatibilité entre le type d'axe (QR, Thru-Axle) et le cadre du vélo.
-            
-            La réponse doit être basée uniquement sur des **sources fiables** liées au produit exact. Les citations doivent inclure les fiches produit ou les manuels techniques correspondants.
-            
-            ### Format de réponse attendu :
-            ✅ **Compatibilité :** Oui / Non
-            🧠 **Niveau de confiance :** Bas / Moyen / Élevé
-            💬 **Argumentation (max 50 caractères).**
-            
-            Si les citations ne concernent pas le produit exact, indique que la source n'est pas fiable.
-            `,
+  Tu es un mécanicien vélo expert. Ta mission est de vérifier la compatibilité entre un vélo spécifique et un boîtier de pédalier référencé sur le site Alltricks. La réponse doit être précise, technique, et basée sur des sources vérifiées, telles que les manuels des fabricants (DT Swiss, Shimano, SRAM, Campagnolo), les fiches techniques des vélos, et les guides d’entretien certifiés (Park Tool). Si la compatibilité est incertaine, fournir des recommandations alternatives."
+  
+  ✅ Tâche à réaliser :
+  1️⃣ Informations vélo à analyser :
+  Marque, Modèle, Année
+  Transmission installée (Shimano, SRAM, etc.)
+  
+  2️⃣ Spécifications du boîtier de pédalier :
+  Tu auras accès à l'URL du produit sur Alltricks, contenant les données suivantes :
+  Largeur (en mm), Diamètre du boîtier de pédalier, Type de boitier (BSA, BB30, PressFit, etc.)
+  
+  🔧 Critères d'évaluation :
+  Largeur : Correspondance avec le cadre du vélo.
+  Diamètre : Vérifie si le standard correspond (BSA, BB30, etc.).
+  Type de roulements : Compatibilité avec le pédalier du vélo.
+  
+Ne partage aucune autre information que :
+  Compatibilité : Oui / Non
+  Niveau de confiance : Bas / Moyen / Élevé
+  Justification (max. 80 caractères)
+  
+  Boitier de pédalier à tester :** ${productDescriptionFromFP}
+  Vélo à tester :** ${bikeInfo},
+  `,
           },
         ],
       }),
@@ -152,50 +150,33 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    console.log('Réponse complète Perplexity:', data);
     const content = data.choices[0]?.message?.content || '';
 
     console.log('Contenu extrait:', content);
 
-    const citations = data.citations || [];
-    const validCitations = citations.filter((citation) =>
-      citation.includes(cleanedProductUrl),
-    );
-
-    if (validCitations.length === 0) {
-      console.error('Les citations ne concernent pas le produit exact.');
-      return res.status(200).json({
-        productDescription,
-        bikeDescription,
-        productH1,
-        productDescriptionFromFP,
-        result: {
-          compatibility: '❌ Non compatible',
-          confidence: 'Non disponible',
-          argument: 'Citations non valides.',
-        },
-      });
-    }
-    PERPLEXITY_API_KEY;
-
     result = {
       compatibility:
-        content.match(/✅ Compatibilité : (Oui|Non)/)?.[1] || 'Non disponible',
+        content.match(/Compatibilité\s*:\s*(Oui|Non)/i)?.[1] === 'Oui'
+          ? '✔️ Compatible'
+          : '❌ Non compatible',
       confidence:
-        content.match(/🧠 Niveau de confiance : (Bas|Moyen|Élevé)/)?.[1] ||
+        content.match(/Niveau de Confiance\s*:\s*(Bas|Moyen|Élevé)/i)?.[1] ||
         'Non disponible',
       argument:
-        content.match(/💬 Argumentation : (.{1,50})/)?.[1]?.trim() ||
-        'Argument non disponible',
+        content
+          .match(/\*\*Justification\s*:\*\*\s*([\s\S]*?)(?=\n|$)/i)?.[1]
+          ?.trim() || 'Argument non disponible',
     };
   } catch (error) {
     console.error(
       'Erreur lors de la récupération des données Perplexity:',
       error,
     );
-    return res.status(500).json({
-      error: 'Impossible de récupérer les informations produit et vélo.',
-    });
+    result = {
+      compatibility: 'Non disponible',
+      confidence: 'Non disponible',
+      argument: 'Non disponible',
+    };
   }
 
   res.status(200).json({
@@ -203,11 +184,6 @@ export default async function handler(req, res) {
     bikeDescription,
     productH1,
     productDescriptionFromFP,
-    result: {
-      compatibility:
-        result.compatibility === 'Non' ? '❌ Non compatible' : '✔️ Compatible',
-      confidence: result.confidence,
-      argument: result.argument,
-    },
+    result,
   });
 }
