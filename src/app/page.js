@@ -16,12 +16,8 @@ export default function Home() {
   useEffect(() => {
     setHydrated(true);
 
-    setBikeInfo(
-      'https://www.alltricks.fr/F-41505-velos-route-_-cyclocross-_-triathlon/P-2756037-velo_de_route_orbea_orca_m30_shimano_105_12v_700_mm_bleu_slate_2024',
-    );
-    setProductUrl(
-      'https://www.alltricks.fr/F-11907-boitiers-de-pedaliers/P-2375315-boitier_de_pedalier_shimano_bb_mt501_68_73_mm_bsa',
-    );
+    setBikeInfo('');
+    setProductUrl('');
   }, []);
 
   const handleSubmit = async (e) => {
@@ -46,6 +42,40 @@ export default function Home() {
     // Empêche le rendu côté serveur
     return null;
   }
+
+  const handleBugReportSubmit = async () => {
+    try {
+      const res = await fetch(
+        `https://api.airtable.com/v0/appuHLOX5Vhw76mUw/tblhAA1vA7rYLVhvQ`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fields: {
+              'Bike Info': bikeInfo,
+              'Product URL': productUrl,
+              'API Response': JSON.stringify(response),
+              Comment: comment,
+            },
+          }),
+        },
+      );
+
+      if (res.ok) {
+        alert('Bug report submitted successfully!');
+        setComment('');
+        setBugFormVisible(false);
+      } else {
+        throw new Error('Failed to submit bug report');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Failed to submit bug report.');
+    }
+  };
 
   return (
     <PageGuard>
@@ -108,7 +138,6 @@ export default function Home() {
                 <h2 className="text-lg font-bold">Résultat :</h2>
                 <div>
                   <p>Compatibilité : {response.result.compatibility}</p>
-                  <p>Niveau de confiance : {response.result.confidence}</p>
                   <p>Argumentation : {response.result.argument}</p>
                 </div>
               </div>
